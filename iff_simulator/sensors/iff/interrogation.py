@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ...domain import Vector3
 from .mode import IFFMode
 from .selected_target import SelectedTarget
 from .uplink_format import UplinkFormat
@@ -85,6 +86,21 @@ class InterrogationMessage:
     elevation_deg: float
     """Elevation to the target, degrees (from SelectedTarget)."""
 
+    closing_velocity_mps: float = 0.0
+    """Phase 8.5 Part 1: rate at which range is shrinking, meters/second;
+    positive = approaching (from SelectedTarget/RelativeState). Defaults
+    to 0.0 so pre-8.5 direct `InterrogationMessage(...)` constructions
+    (throughout the existing test suite) keep working unmodified."""
+
+    relative_velocity: Vector3 | None = None
+    """Phase 8.5 Part 1: target velocity minus Ownship velocity,
+    meters/second, ENU (from SelectedTarget/RelativeState). Carrying
+    this through the pipeline means `IFFTrackManager` (and anything
+    else downstream) never needs a second `GeometryEngine` call to
+    recover it — see this class's `from_selected_target`. Defaults to
+    None for the same backward-compatibility reason as
+    `closing_velocity_mps`."""
+
     @classmethod
     def from_selected_target(
         cls,
@@ -109,9 +125,15 @@ class InterrogationMessage:
         Outputs:
             A new `InterrogationMessage`.
         Engineering reasoning:
-            Pure field copy for time/range/azimuth/elevation — geometry
-            and timing come directly from `SelectedTarget` (itself
-            sourced from `GeometryEngine`), never recomputed here.
+            Pure field copy for time/range/azimuth/elevation/closing
+            velocity/relative velocity — geometry and timing come
+            directly from `SelectedTarget` (itself sourced from the
+            single `GeometryEngine.compute_batch` call
+            `TargetSelector.select_targets()` already made this tick),
+            never recomputed here. Carrying `closing_velocity_mps` and
+            `relative_velocity` forward (Phase 8.5 Part 1) is what lets
+            `IFFTrackManager` receive full relative geometry without a
+            second geometry computation.
         """
         return cls(
             time=selected_target.time,
@@ -123,6 +145,8 @@ class InterrogationMessage:
             range_m=selected_target.range_m,
             azimuth_deg=selected_target.azimuth_deg,
             elevation_deg=selected_target.elevation_deg,
+            closing_velocity_mps=selected_target.closing_velocity_mps,
+            relative_velocity=selected_target.relative_velocity,
         )
 
     def to_csv_row(self) -> dict:
@@ -133,8 +157,13 @@ class InterrogationMessage:
             the spec's exact CSV column names.
         Outputs:
             dict with keys: Time, Sequence, Ownship_ID, Target_ID, Mode,
-            UF, Range, Azimuth, Elevation.
+            UF, Range, Azimuth, Elevation, Closing_Velocity,
+            Relative_Velocity (the last two added by Phase 8.5 Part 1 —
+            appended after the original columns, so any consumer reading
+            only the first 9 columns is unaffected).
         """
+        velocity = self.relative_velocity
+        relative_velocity_csv = "" if velocity is None else f"{velocity.x};{velocity.y};{velocity.z}"
         return {
             "Time": self.time,
             "Sequence": self.sequence_number,
@@ -145,4 +174,6 @@ class InterrogationMessage:
             "Range": self.range_m,
             "Azimuth": self.azimuth_deg,
             "Elevation": self.elevation_deg,
+            "Closing_Velocity": self.closing_velocity_mps,
+            "Relative_Velocity": relative_velocity_csv,
         }

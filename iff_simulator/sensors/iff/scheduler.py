@@ -133,6 +133,11 @@ class InterrogationScheduler:
         mode_selection_policy: a `ModeSelectionPolicy` (Strategy
             pattern); defaults to `DefaultModeSelectionPolicy()`.
         queue: an `InterrogationQueue`; defaults to a new, empty one.
+        enable_logging: Phase 8.5 Part 7 — when True, every transmitted
+            `InterrogationMessage` also accumulates in `self.log`, for
+            later export via `interrogation_queue.write_interrogations_csv`.
+            Default False; `tick()`'s return value and the `self.queue`
+            contents are identical either way.
 
     Outputs:
         `tick()`, `pause()`, `resume()`, `is_paused()`, `period`.
@@ -151,6 +156,7 @@ class InterrogationScheduler:
         scheduling_policy: SchedulingPolicy | None = None,
         mode_selection_policy: ModeSelectionPolicy | None = None,
         queue: InterrogationQueue | None = None,
+        enable_logging: bool = False,
     ) -> None:
         self.world = world
         self.target_selector = target_selector
@@ -159,6 +165,8 @@ class InterrogationScheduler:
             mode_selection_policy or DefaultModeSelectionPolicy()
         )
         self.queue = queue if queue is not None else InterrogationQueue()
+        self.enable_logging = enable_logging
+        self.log: list[InterrogationMessage] = []
 
         self._next_sequence_number = 1
         self._next_transmission_time = world.current_time()
@@ -240,4 +248,6 @@ class InterrogationScheduler:
         )
         self._next_sequence_number += 1
         self.queue.enqueue(message)
+        if self.enable_logging:
+            self.log.append(message)
         return message

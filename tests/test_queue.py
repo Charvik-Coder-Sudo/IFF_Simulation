@@ -99,7 +99,11 @@ def test_write_interrogations_csv(tmp_path: Path):
 
     assert result_path == output_path
     content = output_path.read_text(encoding="utf-8").splitlines()
-    assert content[0] == "Time,Sequence,Ownship_ID,Target_ID,Mode,UF,Range,Azimuth,Elevation"
+    # Phase 8.5 Part 1 appends Closing_Velocity/Relative_Velocity.
+    assert content[0] == (
+        "Time,Sequence,Ownship_ID,Target_ID,Mode,UF,Range,Azimuth,Elevation,"
+        "Closing_Velocity,Relative_Velocity"
+    )
     assert len(content) == 3  # header + 2 rows
 
 

@@ -41,6 +41,8 @@ _CSV_COLUMNS = [
     "Range",
     "Azimuth",
     "Elevation",
+    "Closing_Velocity",  # Phase 8.5 Part 1: appended, does not disturb prior columns.
+    "Relative_Velocity",  # Phase 8.5 Part 1: appended, does not disturb prior columns.
 ]
 
 

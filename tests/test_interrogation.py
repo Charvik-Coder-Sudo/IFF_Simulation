@@ -114,10 +114,14 @@ def test_to_csv_row_has_exact_spec_column_names():
         mode=IFFMode.MODE5_L2, uplink_format=UplinkFormat.UF21,
     )
     row = message.to_csv_row()
+    # Phase 8.5 Part 1 appends Closing_Velocity/Relative_Velocity after
+    # the original 9 columns.
     assert list(row.keys()) == [
         "Time", "Sequence", "Ownship_ID", "Target_ID", "Mode", "UF", "Range", "Azimuth", "Elevation",
+        "Closing_Velocity", "Relative_Velocity",
     ]
     assert row["Sequence"] == 3
     assert row["Mode"] == "MODE5_L2"
     assert row["UF"] == "UF21"
     assert row["Range"] == message.range_m
+    assert row["Closing_Velocity"] == message.closing_velocity_mps
