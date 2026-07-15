@@ -9,7 +9,7 @@ or geometry logic lives here.
 from .inspector import GroundTruthInspector
 from .loader import GroundTruthLoader
 from .merger import GroundTruthMerger
-from .models import REQUIRED_COLUMNS, GroundTruthSample
+from .models import REQUIRED_COLUMNS
 from .statistics import GroundTruthStatistics
 from .validator import GroundTruthValidationError, GroundTruthValidator
 
@@ -17,7 +17,6 @@ __all__ = [
     "GroundTruthInspector",
     "GroundTruthLoader",
     "GroundTruthMerger",
-    "GroundTruthSample",
     "GroundTruthStatistics",
     "GroundTruthValidationError",
     "GroundTruthValidator",

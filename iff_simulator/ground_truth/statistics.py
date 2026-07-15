@@ -2,11 +2,12 @@
 
 Purpose:
     Implements `GroundTruthStatistics`, which derives summary flight
-    metrics (speed, altitude, distance, duration) per aircraft from the
-    merged ground-truth dataset, and writes them to `statistics.csv`.
+    metrics (speed, altitude, distance, duration) per aircraft from a
+    `Scenario`'s recorded `AircraftState` histories, and writes them to
+    `statistics.csv`.
 
 Inputs:
-    A `GroundTruthInspector` bound to the merged ground-truth DataFrame.
+    A `GroundTruthInspector` bound to a `Scenario`.
 
 Outputs:
     A `pandas.DataFrame` (one row per TargetID) with the computed
@@ -16,7 +17,11 @@ Engineering explanation:
     Speed is derived from the recorded velocity components
     (sqrt(VX^2 + VY^2 + VZ^2)) rather than differentiating position, since
     velocity is already directly recorded in the ground truth and is
-    more numerically stable than a finite-difference estimate.
+    more numerically stable than a finite-difference estimate. The
+    per-sample speed values are reduced (max/mean) via a small internal
+    pandas Series purely to reuse the same pairwise-summation algorithm
+    used pre-refactor, so results stay numerically identical; the
+    Series is never exposed outside this method.
 """
 
 from __future__ import annotations
@@ -30,16 +35,15 @@ from .inspector import GroundTruthInspector
 
 
 class GroundTruthStatistics:
-    """Computes per-aircraft summary statistics from the ground-truth dataset.
+    """Computes per-aircraft summary statistics from a Scenario's state histories.
 
     Purpose:
-        Provide a single reusable component that turns the merged
-        ground-truth table into per-aircraft summary metrics for
-        reporting and later fusion-quality baselining.
+        Provide a single reusable component that turns a `Scenario`'s
+        recorded `AircraftState` histories into per-aircraft summary
+        metrics for reporting and later fusion-quality baselining.
 
     Inputs:
-        `inspector`: a `GroundTruthInspector` bound to the merged
-        ground-truth DataFrame.
+        `inspector`: a `GroundTruthInspector` bound to a `Scenario`.
 
     Outputs:
         `compute()` returns a DataFrame with one row per TargetID and
@@ -48,10 +52,10 @@ class GroundTruthStatistics:
         `save()` writes that DataFrame to a CSV file.
 
     Engineering explanation:
-        Altitude is read directly from the Z column, consistent with the
-        Cartesian frame already used throughout the ground-truth schema;
-        no coordinate transformation is performed (out of scope for
-        Phase 1).
+        Altitude is read directly from each state's `position.z`,
+        consistent with the Cartesian frame already used throughout the
+        ground-truth schema; no coordinate transformation is performed
+        (out of scope for Phase 1).
     """
 
     def __init__(self, inspector: GroundTruthInspector) -> None:
@@ -65,15 +69,23 @@ class GroundTruthStatistics:
         """
         rows = []
         for target_id in self.inspector.list_targets():
-            df = self.inspector.get_target(target_id)
-            speed = np.sqrt(df["VX"] ** 2 + df["VY"] ** 2 + df["VZ"] ** 2)
+            history = self.inspector.get_target(target_id)
+            velocity = pd.DataFrame(
+                {
+                    "VX": [state.velocity.x for state in history],
+                    "VY": [state.velocity.y for state in history],
+                    "VZ": [state.velocity.z for state in history],
+                }
+            )
+            speed = np.sqrt(velocity["VX"] ** 2 + velocity["VY"] ** 2 + velocity["VZ"] ** 2)
+            altitude = pd.Series([state.position.z for state in history])
             rows.append(
                 {
                     "TargetID": target_id,
                     "MaxSpeed": float(speed.max()),
                     "AvgSpeed": float(speed.mean()),
-                    "MaxAltitude": float(df["Z"].max()),
-                    "MinAltitude": float(df["Z"].min()),
+                    "MaxAltitude": float(altitude.max()),
+                    "MinAltitude": float(altitude.min()),
                     "TotalDistance": self.inspector.trajectory_length(target_id),
                     "FlightDuration": self.inspector.duration(target_id),
                 }

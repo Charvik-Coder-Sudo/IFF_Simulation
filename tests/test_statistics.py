@@ -7,15 +7,13 @@ from pathlib import Path
 from iff_simulator.ground_truth import (
     GroundTruthInspector,
     GroundTruthLoader,
-    GroundTruthMerger,
     GroundTruthStatistics,
 )
 
 
 def test_compute_returns_one_row_per_target(aircrafts_dir: Path) -> None:
-    trajectories = GroundTruthLoader(aircrafts_dir).load()
-    merged = GroundTruthMerger(trajectories).merge()
-    inspector = GroundTruthInspector(merged)
+    scenario = GroundTruthLoader(aircrafts_dir).load()
+    inspector = GroundTruthInspector(scenario)
     stats_df = GroundTruthStatistics(inspector).compute()
 
     assert set(stats_df["TargetID"]) == {"TARGET_1", "TARGET_2"}
@@ -32,9 +30,8 @@ def test_compute_returns_one_row_per_target(aircrafts_dir: Path) -> None:
 
 
 def test_save_writes_csv(aircrafts_dir: Path, tmp_path: Path) -> None:
-    trajectories = GroundTruthLoader(aircrafts_dir).load()
-    merged = GroundTruthMerger(trajectories).merge()
-    inspector = GroundTruthInspector(merged)
+    scenario = GroundTruthLoader(aircrafts_dir).load()
+    inspector = GroundTruthInspector(scenario)
     stats = GroundTruthStatistics(inspector)
     stats_df = stats.compute()
 

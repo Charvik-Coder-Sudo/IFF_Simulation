@@ -18,7 +18,10 @@ Outputs:
 Engineering explanation:
     This script intentionally contains no IFF, Mode S, Mode 5, tracking,
     or geometry logic — it only exercises the Ground Truth subsystem,
-    which is the reusable foundation later phases will build on.
+    which is the reusable foundation later phases will build on. The
+    loader returns a `Scenario` (domain objects), which flows unchanged
+    into the validator and inspector; only the merger and statistics
+    modules touch pandas, and only as an internal file-I/O detail.
 """
 
 from __future__ import annotations
@@ -41,18 +44,18 @@ OUTPUT_DIR = PROJECT_ROOT / "iff_simulator" / "output"
 
 def main() -> None:
     loader = GroundTruthLoader(AIRCRAFTS_DIR)
-    trajectories = loader.load()
-    print(f"Loaded {len(trajectories)} target(s): {sorted(trajectories)}")
+    scenario = loader.load()
+    print(f"Loaded {len(scenario.list_aircraft_ids())} target(s): {scenario.list_aircraft_ids()}")
 
-    validator = GroundTruthValidator(trajectories)
+    validator = GroundTruthValidator(scenario)
     validator.validate(verbose=True)
 
-    merger = GroundTruthMerger(trajectories)
+    merger = GroundTruthMerger(scenario)
     merged = merger.merge()
     ground_truth_path = merger.save(merged, OUTPUT_DIR / "ground_truth.csv")
     print(f"\nSaved merged ground truth to {ground_truth_path}")
 
-    inspector = GroundTruthInspector(merged)
+    inspector = GroundTruthInspector(scenario)
     print("\nDataset summary:")
     print(inspector.summary())
 

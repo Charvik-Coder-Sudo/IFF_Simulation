@@ -6,24 +6,23 @@ from pathlib import Path
 
 import pytest
 
-from iff_simulator.ground_truth import GroundTruthInspector, GroundTruthLoader, GroundTruthMerger
+from iff_simulator.ground_truth import GroundTruthInspector, GroundTruthLoader
 
 
 @pytest.fixture
 def inspector(aircrafts_dir: Path) -> GroundTruthInspector:
-    trajectories = GroundTruthLoader(aircrafts_dir).load()
-    merged = GroundTruthMerger(trajectories).merge()
-    return GroundTruthInspector(merged)
+    scenario = GroundTruthLoader(aircrafts_dir).load()
+    return GroundTruthInspector(scenario)
 
 
 def test_list_targets(inspector: GroundTruthInspector) -> None:
     assert inspector.list_targets() == ["TARGET_1", "TARGET_2"]
 
 
-def test_get_target_returns_only_that_target(inspector: GroundTruthInspector) -> None:
-    df = inspector.get_target("TARGET_1")
-    assert (df["TargetID"] == "TARGET_1").all()
-    assert len(df) == 5
+def test_get_target_returns_only_that_targets_history(inspector: GroundTruthInspector) -> None:
+    history = inspector.get_target("TARGET_1")
+    assert len(history) == 5
+    assert all(state.time is not None for state in history)
 
 
 def test_get_target_unknown_raises(inspector: GroundTruthInspector) -> None:
@@ -32,8 +31,8 @@ def test_get_target_unknown_raises(inspector: GroundTruthInspector) -> None:
 
 
 def test_get_time_returns_all_targets_at_that_time(inspector: GroundTruthInspector) -> None:
-    df = inspector.get_time(1)
-    assert set(df["TargetID"]) == {"TARGET_1", "TARGET_2"}
+    states_at_time = inspector.get_time(1)
+    assert set(states_at_time.keys()) == {"TARGET_1", "TARGET_2"}
 
 
 def test_summary_contains_expected_keys(inspector: GroundTruthInspector) -> None:
