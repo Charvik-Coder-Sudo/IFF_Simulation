@@ -42,8 +42,8 @@ class SimulationClock:
     Engineering explanation:
         `step()` clamps to `end_time` so the clock never overshoots the
         configured simulation horizon, which keeps any future
-        time-indexed lookups (e.g. `WorldState.update()`) safely within
-        the range of recorded/simulated data.
+        time-indexed lookups (e.g. `World.step()`) safely within the
+        range of recorded/simulated data.
     """
 
     def __init__(self, start_time: float = 0.0, dt: float = 1.0, end_time: float = 0.0) -> None:

@@ -12,15 +12,16 @@ Inputs:
 
 Outputs:
     Read accessors used by every downstream module (`GroundTruthValidator`,
-    `GroundTruthMerger`, `GroundTruthInspector`, `WorldState`).
+    `GroundTruthMerger`, `GroundTruthInspector`, `World`).
 
 Engineering explanation:
     A `Scenario` keeps the full recorded time history per aircraft (so
     Phase 1's statistics/plots, which need the entire trajectory, keep
     working) while also tracking a "current index" per aircraft — a
-    cursor into that history — so a future live playback driven by
-    `SimulationClock`/`WorldState` can expose a single "current"
-    `AircraftState` per aircraft without duplicating the recorded data.
+    cursor into that history — so a live playback driven by
+    `SimulationClock`/`World` can expose a single "current"
+    `AircraftState` per aircraft (and, via `Ownship`, read that state
+    live) without duplicating the recorded data.
 """
 
 from __future__ import annotations
@@ -87,8 +88,8 @@ class Scenario:
         """Return the "current" `AircraftState` for one aircraft.
 
         The current state is a cursor into that aircraft's recorded
-        history, advanced by `WorldState.update()`. It defaults to the
-        first recorded sample.
+        history, advanced by `World.step()`. It defaults to the first
+        recorded sample.
         """
         history = self.get_state_history(aircraft_id)
         index = self._current_index[aircraft_id]
@@ -97,7 +98,7 @@ class Scenario:
     def set_current_index(self, aircraft_id: str, index: int) -> None:
         """Advance the "current state" cursor for one aircraft.
 
-        Used internally by `WorldState.update()`; not needed by Phase 1's
+        Used internally by `World.step()`; not needed by Phase 1's
         static (non-live) ground-truth reporting pipeline.
         """
         history = self.get_state_history(aircraft_id)

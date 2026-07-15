@@ -10,7 +10,8 @@ Inputs:
 
 Outputs:
     A mutable `AircraftState` instance, held in a `Scenario`'s recorded
-    state history and referenced as the "current" state by `WorldState`.
+    state history and referenced as the "current" state by `World`
+    (and, for the Ownship aircraft, read live through `Ownship`).
 
 Engineering explanation:
     The recorded `.tdf` data already includes a sensor-derived polar
@@ -52,7 +53,7 @@ class AircraftState:
         `GroundTruthStatistics`, and `TrajectoryPlotter`.
 
     Engineering explanation:
-        Declared mutable (not frozen) because `WorldState`/`SimulationClock`
+        Declared mutable (not frozen) because `World`/`SimulationClock`
         are expected to advance which `AircraftState` is "current" as
         simulated time progresses in later phases; Phase 1 itself never
         mutates a state after construction.
