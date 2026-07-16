@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .measurement import DecodedIFFMeasurement
+from .receiver_statistics import RECEIVER_STATISTICS_CSV_COLUMNS, ReceiverStatistics
 from .reply import ReplyMessage
 from .track import IFFTrack
 
@@ -84,3 +85,9 @@ def write_decoded_csv(measurements: Iterable[DecodedIFFMeasurement], output_path
 def write_tracks_csv(tracks: Iterable[IFFTrack], output_path: Path | str) -> Path:
     """Write a collection of IFFTrack to tracks.csv."""
     return _write_csv((t.to_csv_row() for t in tracks), TRACKS_CSV_COLUMNS, output_path)
+
+
+def write_receiver_statistics_csv(statistics: ReceiverStatistics, output_path: Path | str) -> Path:
+    """Write one ReceiverStatistics snapshot to receiver_statistics.csv
+    (Phase 9 Part 9), one data row following the header."""
+    return _write_csv([statistics.to_csv_row()], RECEIVER_STATISTICS_CSV_COLUMNS, output_path)
